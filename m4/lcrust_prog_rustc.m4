@@ -33,6 +33,7 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
     then
         case $RUSTC in 
             *[\\/]$host-* ) dnl gccrs has a host prefix when cross-compiling, so no need to attempt using `--target`
+                rustc_host_target=$host
                 ;;
             * )
                 SAVE_RUSTFLAGS="$RUSTFLAGS"
@@ -43,6 +44,8 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
                 
                 if test $? -eq 0
                 then
+                    rustc_host_target=$host
+                    rm -f test.rs libtest.rlib
                     AC_MSG_RESULT([--target $host])
                 else
                     rm -f test.rs libtest.rlib
@@ -51,6 +54,7 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
                     $RUSTC $RUSTFLAGS --crate-type rlib --crate-name test test.rs  2>> config.log > /dev/null
                     if test $? -eq 0
                     then
+                        rustc_host_target=$host_alias
                         rm -f test.rs libtest.rlib
                         AC_MSG_RESULT([--target $host_alias])
                     else
@@ -58,14 +62,14 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
                         case "$host" in 
                             x86_64-pc-*-* )
                                 IFS="-" read arch vendor kernel env  <<< "$host"
-                                host_target="$arch-unknown-$kernel-$env"
-                                RUSTFLAGS="$SAVE_RUSTFLAGS --target $host_target"
+                                rustc_host_target="$arch-unknown-$kernel-$env"
+                                RUSTFLAGS="$SAVE_RUSTFLAGS --target $rustc_host_target"
                                 echo '' > test.rs
                                 $RUSTC $RUSTFLAGS --crate-type rlib --crate-name test test.rs  2>> config.log > /dev/null
                                 if test $? -eq 0
                                 then
                                     rm -f test.rs libtest.rlib
-                                    AC_MSG_RESULT([--target $host_target])
+                                    AC_MSG_RESULT([--target $rustc_host_target])
                                 else
                                     AC_MSG_RESULT([failed])
                                     AC_MSG_ERROR([Cannot determine how to cross compile to $host with $RUSTC])
@@ -74,14 +78,14 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
 
                             i?86-pc-*-* )
                                 IFS="-" read arch vendor kernel env  <<< "$host"
-                                host_target="$arch-unknown-$kernel-$env"
-                                RUSTFLAGS="$SAVE_RUSTFLAGS --target $host_target"
+                                rustc_host_target="$arch-unknown-$kernel-$env"
+                                RUSTFLAGS="$SAVE_RUSTFLAGS --target $rustc_host_target"
                                 echo '' > test.rs
                                 $RUSTC $RUSTFLAGS --crate-type rlib --crate-name test test.rs  2>> config.log > /dev/null
                                 if test $? -eq 0
                                 then
                                     rm -f test.rs libtest.rlib
-                                    AC_MSG_RESULT([--target $host_target])
+                                    AC_MSG_RESULT([--target $rustc_host_target])
                                 else
                                     AC_MSG_RESULT([failed])
                                     AC_MSG_ERROR([Cannot determine how to cross compile to $host with $RUSTC])
@@ -153,7 +157,7 @@ AC_DEFUN([LCURST_RUSTC_VERSION],[
             ;;
     esac
     AC_MSG_CHECKING(whether $RUSTC is lccc)
-    case $name in
+    case $rustc_name in
         lcrust* | lccc* ) dnl lccc doesn't distinguish between stable and unstable compiler, 
             rustc_is_lccc=yes
             ;;
@@ -166,7 +170,6 @@ AC_DEFUN([LCURST_RUSTC_VERSION],[
     AC_SUBST(rustc_name)
     AC_SUBST(rust_version)
     AC_SUBST(rust_channel)
-    AC_SUBST(rustc_is_lccc)
 ])
 
 AC_DEFUN([LCRUST_PROG_RUSTC_FOR_BUILD],[
@@ -187,6 +190,79 @@ AC_DEFUN([LCRUST_PROG_RUSTC_FOR_BUILD],[
 
     AC_MSG_NOTICE([checking for the compiler to use for $build... $RUSTC_FOR_BUILD])
 
+    if test x$build_alias != x
+    then
+        case $RUSTC in 
+            *[[\\/]]$build-* ) dnl gccrs has a host prefix when cross-compiling, so no need to attempt using `--target`
+                rustc_build_target=$build
+                ;;
+            * )
+                SAVE_RUSTFLAGS="$RUSTFLAGS"
+                AC_MSG_CHECKING([how to cross compile to $build with $RUSTC_FOR_BUILD])
+                RUSTFLAGS="$RUSTFLAGS --target $build"
+                echo '' > test.rs
+                $RUSTC $RUSTFLAGS --crate-type rlib --crate-name test test.rs 2>> config.log > /dev/null
+                
+                if test $? -eq 0
+                then
+                    rustc_build_target=$build_alias
+                    rm -f test.rs libtest.rlib
+                    AC_MSG_RESULT([--target $build])
+                else
+                    rm -f test.rs libtest.rlib
+                    RUSTFLAGS="$SAVE_RUSTFLAGS --target $build_alias"
+                    echo '' > test.rs
+                    $RUSTC $RUSTFLAGS --crate-type rlib --crate-name test test.rs  2>> config.log > /dev/null
+                    if test $? -eq 0
+                    then
+                        rustc_build_target=$build_alias
+                        rm -f test.rs libtest.rlib
+                        AC_MSG_RESULT([--target $build_alias])
+                    else
+                        rm -f test.rs libtest.rlib
+                        case "$build" in 
+                            x86_64-pc-*-* )
+                                IFS="-" read arch vendor kernel env  <<< "$host"
+                                rustc_build_target="$arch-unknown-$kernel-$env"
+                                RUSTFLAGS="$SAVE_RUSTFLAGS --target $rustc_build_target"
+                                echo '' > test.rs
+                                $RUSTC $RUSTFLAGS --crate-type rlib --crate-name test test.rs  2>> config.log > /dev/null
+                                if test $? -eq 0
+                                then
+                                    rm -f test.rs libtest.rlib
+                                    AC_MSG_RESULT([--target $rustc_build_target])
+                                else
+                                    AC_MSG_RESULT([failed])
+                                    AC_MSG_ERROR([Cannot determine how to cross compile to $host with $RUSTC])
+                                fi
+                            ;;
+
+                            i?86-pc-*-* )
+                                IFS="-" read arch vendor kernel env  <<< "$host"
+                                host_target="$arch-unknown-$kernel-$env"
+                                RUSTFLAGS="$SAVE_RUSTFLAGS --target $host_target"
+                                echo '' > test.rs
+                                $RUSTC $RUSTFLAGS --crate-type rlib --crate-name test test.rs  2>> config.log > /dev/null
+                                if test $? -eq 0
+                                then
+                                    rm -f test.rs libtest.rlib
+                                    AC_MSG_RESULT([--target $host_target])
+                                else
+                                    AC_MSG_RESULT([failed])
+                                    AC_MSG_ERROR([Cannot determine how to cross compile to $host with $RUSTC])
+                                fi
+                            ;;
+
+                            *)
+                                AC_MSG_RESULT([failed])
+                                AC_MSG_ERROR([Cannot determine how to cross compile to $host with $RUSTC])
+                                ;;
+                        esac
+                    fi
+                fi
+                ;;
+        esac
+    fi
 
     AC_MSG_CHECKING([whether Rust compiler works])
     echo 'fn main(){}' > test.rs 
@@ -212,6 +288,49 @@ AC_DEFUN([LCRUST_PROG_RUSTC_FOR_BUILD],[
     AC_SUBST(RUSTFLAGS_FOR_BUILD)
 ])
 
+AC_DEFUN([LCURST_RUSTC_VERSION_FOR_BUILD],[
+    AC_REQUIRE([LCRUST_PROG_RUSTC_FOR_BUILD])
+
+    version_output="`${RUSTC_FOR_BUILD} --version`"
+
+    AC_MSG_CHECKING(the rust version supported by ${RUSTC_FOR_BUILD})
+    
+    read build_rustc_name build_rust_version <<< ${version_output}
+
+    AC_MSG_RESULT(${build_rust_version})
+
+    case $build_rust_version in
+        *.*.*-beta.* )
+            rust_channel=beta
+            IFS="." read build_rust_major build_rust_minor _lcrust_rest <<< ${version_output}
+            IFS="-" read build_rust_patch <<< ${_lcrust_rest}
+            ;;
+        *.*.*-* )
+            IFS="." read build_rust_major build_rust_minor _lcrust_rest <<< ${version_output}
+            IFS="-" read build_rust_patch build_rust_channel <<< ${_lcrust_rest}
+            ;;
+        *.*.* )
+            rust_channel=stable
+            IFS="." read build_rust_major build_rust_minor build_rust_patch <<< ${version_output}
+            ;;
+    esac
+    AC_MSG_CHECKING(whether $RUSTC_FOR_BUILD is lccc)
+    case $build_rustc_name in
+        lcrust* | lccc* ) dnl lccc doesn't distinguish between stable and unstable compiler, 
+            build_rustc_is_lccc=yes
+            ;;
+        * )
+            build_rustc_is_lccc=no
+            ;;
+    esac
+    AC_MSG_RESULT([$build_rustc_is_lccc])
+    
+    AC_SUBST(build_rustc_name)
+    AC_SUBST(build_rust_version)
+    AC_SUBST(build_rust_channel)
+])
+
+
 AC_DEFUN([LCRUST_TRY_COMPILE],[
     echo '$1' >> test.rs
     ${RUSTC} ${RUSTFLAGS} --crate-type rlib --crate-name test --emit link=libtest.rlib test.rs
@@ -222,6 +341,22 @@ AC_DEFUN([LCRUST_TRY_COMPILE],[
         $2
     else
         rm -f test.rs libtest.rlib
+        $3
+    fi
+])
+
+AC_DEFUN([LCRUST_TRY_COMPILE_FOR_BUILD],[
+    echo '$1' >> test.rs
+    ${RUSTC_FOR_BUILD} ${RUSTFLAGS_FOR_BUILD} --crate-type rlib --crate-name test --emit link=libtest.rlib test.rs
+
+    if test $? -eq 0 
+    then
+        rm -f test.rs libtest.rlib
+        try_compile_result=yes
+        $2
+    else
+        rm -f test.rs libtest.rlib
+        try_compile_result=no
         $3
     fi
 ])
