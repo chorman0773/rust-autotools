@@ -19,6 +19,8 @@ AC_DEFUN([LCRUST_TRY_COMPILE_WITH_FEATURES],[
         do
             LCRUST_TRY_COMPILE([#![feature($feature)] $1],[
                 try_compile_result=$feature
+                feature_$feature=yes
+                RUSTFLAGS="$RUSTFLAGS --cfg feature_$feature"
                 $3
             ])
             if test x$try_compile_result != xno
