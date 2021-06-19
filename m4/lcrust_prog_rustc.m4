@@ -130,7 +130,7 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
     AC_SUBST(RUSTFLAGS)
 ])
 
-AC_DEFUN([LCURST_RUSTC_VERSION],[
+AC_DEFUN([LCRUST_RUSTC_VERSION],[
     AC_REQUIRE([LCRUST_PROG_RUSTC])
 
     version_output="`${RUSTC} --version`"
@@ -288,7 +288,7 @@ AC_DEFUN([LCRUST_PROG_RUSTC_FOR_BUILD],[
     AC_SUBST(RUSTFLAGS_FOR_BUILD)
 ])
 
-AC_DEFUN([LCURST_RUSTC_VERSION_FOR_BUILD],[
+AC_DEFUN([LCRUST_RUSTC_VERSION_FOR_BUILD],[
     AC_REQUIRE([LCRUST_PROG_RUSTC_FOR_BUILD])
 
     version_output="`${RUSTC_FOR_BUILD} --version`"
@@ -332,7 +332,7 @@ AC_DEFUN([LCURST_RUSTC_VERSION_FOR_BUILD],[
 
 
 AC_DEFUN([LCRUST_TRY_COMPILE],[
-    echo '$1' >> test.rs
+    echo ["$1"] >> test.rs
     ${RUSTC} ${RUSTFLAGS} --crate-type rlib --crate-name test --emit link=libtest.rlib test.rs
 
     if test $? -eq 0 
@@ -346,7 +346,7 @@ AC_DEFUN([LCRUST_TRY_COMPILE],[
 ])
 
 AC_DEFUN([LCRUST_TRY_COMPILE_FOR_BUILD],[
-    echo '$1' >> test.rs
+    echo ["$1"] >> test.rs
     ${RUSTC_FOR_BUILD} ${RUSTFLAGS_FOR_BUILD} --crate-type rlib --crate-name test --emit link=libtest.rlib test.rs
 
     if test $? -eq 0 

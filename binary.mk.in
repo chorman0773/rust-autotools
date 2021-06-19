@@ -15,7 +15,7 @@ ifeq ($(OS),Windows_NT)
 DLLEXT = .dll
 else
 DLLEXT = .so
-fi
+endif
 
 srcdir = @srcdir@
 builddir = @builddir@
@@ -93,7 +93,9 @@ export OUT_DIR=@abs_builddir@
 
 # Targets
 
-all: stamp
+all: 
+	+@srcdir@/build-dirs.sh $(SUBDIRS)
+	+$(MAKE) stamp
 
 .PHONY: all clean distclean install install-strip install-$(OUTPUT) install-strip-$(OUTPUT) $(binary_outputs:%=install-%) $(binary_outputs:%=install-strip-%) $(foreach subdir,$(SUBDIRS),$(subdir)/install) $(foreach subdir,$(SUBDIRS),$(subdir)/install-strip) $(foreach subdir,$(SUBDIRS),$(subdir)/clean) $(foreach subdir,$(SUBDIRS),$(subdir)/distclean) $(foreach subdir,$(SUBDIRS),$(subdir)/check)
 

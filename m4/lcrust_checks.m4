@@ -35,3 +35,14 @@ AC_DEFUN([LCRUST_TRY_COMPILE_WITH_FEATURES],[
         ]
     )
 ])
+
+AC_DEFUN([LCRUST_CHECK_TOOL],[
+    LCRUST_TRY_COMPILE([#![$1 :: $2]],[
+        tool_$1=yes
+        $4
+    ],[
+        LCRUST_TRY_COMPILE([#![register_tool($1)] $![$1 :: $2]],[
+            tool_$1=register
+        ])
+    ])
+])
