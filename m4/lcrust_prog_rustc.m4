@@ -28,84 +28,94 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
     then
         AC_MSG_ERROR([Failed to find a rust compiler. Install rustc in PATH, or set RUSTC to a suitable compiler])
     fi
+    AC_MSG_CHECKING([how to compile for $host with $RUSTC])
+    case x$RUSTC in 
+        x${host_alias}-* | x*[\\/]${host_alias}-* )
+            rustc_host_target=${host_alias}
+            AC_MSG_RESULT([Not needed])
+            ;;
+        x${host}-* | x*[\\/]${host}-* )
+            rustc_host_target=${host}
+            AC_MSG_RESULT([Not needed])
+            ;;
 
-    if test x$host_alias != x
-    then
-        case $RUSTC in 
-            *[\\/]$host-* ) dnl gccrs has a host prefix when cross-compiling, so no need to attempt using `--target`
-                rustc_host_target=$host
-                ;;
-            * )
-                SAVE_RUSTFLAGS="$RUSTFLAGS"
-                AC_MSG_CHECKING([how to cross compile with $RUSTC])
-                RUSTFLAGS="$RUSTFLAGS --target $host"
-                echo '' > test.rs
-                $RUSTC $RUSTFLAGS --crate-type rlib --crate-name test test.rs 2>> config.log > /dev/null
-                
+        x* )
+            SAVE_RUSTFLAGS="$RUSTFLAGS"
+            if test x$host_alias != x 
+            then
+                RUSTFLAGS="$RUSTFLAGS --target $host_alias"
+                echo 'fn main(){}' > comptest.rs 
+                echo Trying target $host_alias >> config.log
+                echo "$RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs" >> config.log
+                $RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs 2>> config.log > /dev/null
+
+                if test $? -eq 0
+                then
+                    rustc_host_target=$host_alias
+                else
+                    echo Using target $host_alias failed >> config.log
+                fi 
+            fi
+            
+            if test x$rustc_host_target \= x
+            then 
+                RUSTFLAGS="$SAVE_RUSTFLAGS --target $host"
+                echo 'fn main(){}' > comptest.rs 
+                echo Trying target $host >> config.log
+                echo "$RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs" >> config.log
+                $RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs 2>> config.log > /dev/null
+
                 if test $? -eq 0
                 then
                     rustc_host_target=$host
-                    rm -f test.rs libtest.rlib
-                    AC_MSG_RESULT([--target $host])
                 else
-                    rm -f test.rs libtest.rlib
-                    RUSTFLAGS="$SAVE_RUSTFLAGS --target $host_alias"
-                    echo '' > test.rs
-                    $RUSTC $RUSTFLAGS --crate-type rlib --crate-name test test.rs  2>> config.log > /dev/null
+                    echo Using target $host failed >> config.log
+                fi 
+            fi
+
+            if test x$rustc_host_target \= x
+            then
+                case $host in
+                x86_64-*-*-* | i*86-*-*-* )
+                    IFS="-" read rustc_host_arch rustc_host_vendor rustc_host_os rustc_host_env <<< "$host"
+                    RUSTFLAGS="$SAVE_RUSTFLAGS --target ${rustc_host_arch}-unknown-${rustc_host_os}-${rustc_host_env}"
+                    echo 'fn main(){}' > comptest.rs 
+                    echo "$RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs" >> config.log
+                    $RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs 2>> config.log > /dev/null
+
                     if test $? -eq 0
                     then
-                        rustc_host_target=$host_alias
-                        rm -f test.rs libtest.rlib
-                        AC_MSG_RESULT([--target $host_alias])
-                    else
-                        rm -f test.rs libtest.rlib
-                        case "$host" in 
-                            x86_64-pc-*-* )
-                                IFS="-" read arch vendor kernel env  <<< "$host"
-                                rustc_host_target="$arch-unknown-$kernel-$env"
-                                RUSTFLAGS="$SAVE_RUSTFLAGS --target $rustc_host_target"
-                                echo '' > test.rs
-                                $RUSTC $RUSTFLAGS --crate-type rlib --crate-name test test.rs  2>> config.log > /dev/null
-                                if test $? -eq 0
-                                then
-                                    rm -f test.rs libtest.rlib
-                                    AC_MSG_RESULT([--target $rustc_host_target])
-                                else
-                                    AC_MSG_RESULT([failed])
-                                    AC_MSG_ERROR([Cannot determine how to cross compile to $host with $RUSTC])
-                                fi
-                            ;;
+                        rustc_host_target=${rustc_host_arch}-unknown-${rustc_host_os}-${rustc_host_env}
+                    fi 
+                    ;;
+                x86_64-*-* | i*86-*-* )
+                    IFS="-" read rustc_host_arch rustc_host_vendor rustc_host_sys <<< "$host"
+                    RUSTFLAGS="$SAVE_RUSTFLAGS --target ${rustc_host_arch}-unknown-${rustc_host_sys}"
+                    echo 'fn main(){}' > comptest.rs 
 
-                            i?86-pc-*-* )
-                                IFS="-" read arch vendor kernel env  <<< "$host"
-                                rustc_host_target="$arch-unknown-$kernel-$env"
-                                RUSTFLAGS="$SAVE_RUSTFLAGS --target $rustc_host_target"
-                                echo '' > test.rs
-                                $RUSTC $RUSTFLAGS --crate-type rlib --crate-name test test.rs  2>> config.log > /dev/null
-                                if test $? -eq 0
-                                then
-                                    rm -f test.rs libtest.rlib
-                                    AC_MSG_RESULT([--target $rustc_host_target])
-                                else
-                                    AC_MSG_RESULT([failed])
-                                    AC_MSG_ERROR([Cannot determine how to cross compile to $host with $RUSTC])
-                                fi
-                            ;;
+                    echo "$RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs" >> config.log
+                    $RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs 2>> config.log > /dev/null
 
-                            *)
-                                AC_MSG_RESULT([failed])
-                                AC_MSG_ERROR([Cannot determine how to cross compile to $host with $RUSTC])
-                                ;;
-                        esac
-                    fi
-                fi
-                ;;
-        esac
-    fi
-
+                    if test $? -eq 0
+                    then
+                        rustc_host_target=${rustc_host_arch}-unknown-${rustc_host_sys}
+                    fi 
+                    ;;
+                esac
+            fi
+            if test x$rustc_host_target \= x
+            then
+                AC_MSG_RESULT([not found])
+                AC_MSG_ERROR([Cannot compile to $host with $RUSTC])
+            else
+                AC_MSG_RESULT([--target $rustc_host_target])
+            fi
+        ;;
+    esac
+    rm -f comptest.rs libcomptest.rlib
     AC_MSG_CHECKING([whether Rust compiler works])
-    echo 'fn main(){}' > test.rs 
-    $RUSTC $RUSTFLAGS --crate-type bin --crate-name test test.rs 2>> config.log > /dev/null
+    echo 'fn main(){}' > comptest.rs 
+    $RUSTC $RUSTFLAGS --crate-type bin --crate-name comptest comptest.rs 2>> config.log > /dev/null
     if test $? -ne 0
     then
         AC_MSG_RESULT([no])
@@ -114,7 +124,7 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
 
     if test x$host_alias != x 
     then
-        ./test${EXEEXT}
+        ./comptest${EXEEXT}
         if test $? -ne 0
         then
             AC_MSG_RESULT([no])
@@ -122,7 +132,7 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
         fi
     fi
 
-    rm -rf test.rs test${EXEEXT}
+    rm -f comptest.rs comptest${EXEEXT}
 
     AC_MSG_RESULT([yes])
 
@@ -144,16 +154,16 @@ AC_DEFUN([LCRUST_RUSTC_VERSION],[
     case $rust_version in
         *.*.*-beta.* )
             rust_channel=beta
-            IFS="." read rust_major rust_minor _lcrust_rest <<< ${version_output}
+            IFS="." read rust_major rust_minor _lcrust_rest <<< ${rust_version}
             IFS="-" read rust_patch <<< ${_lcrust_rest}
             ;;
         *.*.*-* )
-            IFS="." read rust_major rust_minor _lcrust_rest <<< ${version_output}
+            IFS="." read rust_major rust_minor _lcrust_rest <<< ${rust_version}
             IFS="-" read rust_patch rust_channel <<< ${_lcrust_rest}
             ;;
         *.*.* )
             rust_channel=stable
-            IFS="." read rust_major rust_minor rust_patch <<< ${version_output}
+            IFS="." read rust_major rust_minor rust_patch <<< ${rust_version}
             ;;
     esac
     AC_MSG_CHECKING(whether $RUSTC is lccc)
@@ -170,6 +180,9 @@ AC_DEFUN([LCRUST_RUSTC_VERSION],[
     AC_SUBST(rustc_name)
     AC_SUBST(rust_version)
     AC_SUBST(rust_channel)
+    AC_SUBST(rust_major)
+    AC_SUBST(rust_minor)
+    AC_SUBST(rust_patch)
 ])
 
 AC_DEFUN([LCRUST_PROG_RUSTC_FOR_BUILD],[
@@ -190,80 +203,91 @@ AC_DEFUN([LCRUST_PROG_RUSTC_FOR_BUILD],[
 
     AC_MSG_NOTICE([checking for the compiler to use for $build... $RUSTC_FOR_BUILD])
 
-    if test x$build_alias != x
-    then
-        case $RUSTC in 
-            *[[\\/]]$build-* ) dnl gccrs has a host prefix when cross-compiling, so no need to attempt using `--target`
-                rustc_build_target=$build
-                ;;
-            * )
-                SAVE_RUSTFLAGS="$RUSTFLAGS"
-                AC_MSG_CHECKING([how to cross compile to $build with $RUSTC_FOR_BUILD])
-                RUSTFLAGS="$RUSTFLAGS --target $build"
-                echo '' > test.rs
-                $RUSTC $RUSTFLAGS --crate-type rlib --crate-name test test.rs 2>> config.log > /dev/null
-                
+   AC_MSG_CHECKING([how to compile for $build with $RUSTC_FOR_BUILD])
+    case x$RUSTC_FOR_BUILD in 
+        x${build_alias}-* | x*[\\/]${build_alias}-* )
+            rustc_build_target=${build_alias}
+            AC_MSG_RESULT([Not needed])
+            ;;
+        x${build}-* | x*[\\/]${build}-* )
+            rustc_build_target=${build}
+            AC_MSG_RESULT([Not needed])
+            ;;
+
+        x* )
+            SAVE_RUSTFLAGS_FOR_BUILD="$RUSTFLAGS_FOR_BUILD"
+            if test x$build_alias != x 
+            then
+                RUSTFLAGS_FOR_BUILD="$RUSTFLAGS_FOR_BUILD --target $build_alias"
+                echo 'fn main(){}' > comptest.rs 
+                echo Trying target $build_alias >> config.log
+                echo "$RUSTC_FOR_BUILD $RUSTFLAGS_FOR_BUILD --crate-type rlib --crate-name comptest comptest.rs" >> config.log
+                $RUSTC_FOR_BUILD $RUSTFLAGS_FOR_BUILD --crate-type rlib --crate-name comptest comptest.rs 2>> config.log > /dev/null
+
                 if test $? -eq 0
                 then
-                    rustc_build_target=$build_alias
-                    rm -f test.rs libtest.rlib
-                    AC_MSG_RESULT([--target $build])
+                    rustc_host_target=$build_alias
                 else
-                    rm -f test.rs libtest.rlib
-                    RUSTFLAGS="$SAVE_RUSTFLAGS --target $build_alias"
-                    echo '' > test.rs
-                    $RUSTC $RUSTFLAGS --crate-type rlib --crate-name test test.rs  2>> config.log > /dev/null
+                    echo Using target $build_alias failed >> config.log
+                fi 
+            fi
+            
+            if test x$rustc_build_target \= x
+            then 
+                RUSTFLAGS_FOR_BUILD="$SAVE_RUSTFLAGS_FOR_BUILD --target $build"
+                echo 'fn main(){}' > comptest.rs 
+                echo Trying target $build >> config.log
+                echo "$RUSTC_FOR_BUILD $RUSTFLAGS_FOR_BUILD --crate-type rlib --crate-name comptest comptest.rs" >> config.log
+                $RUSTC_FOR_BUILD $RUSTFLAGS_FOR_BUILD --crate-type rlib --crate-name comptest comptest.rs 2>> config.log > /dev/null
+
+                if test $? -eq 0
+                then
+                    rustc_host_target=$build
+                else
+                    echo Using target $build failed >> config.log
+                fi 
+            fi
+
+            if test x$rustc_build_target \= x
+            then
+                case $build in
+                x86_64-*-*-* | i*86-*-*-* )
+                    IFS="-" read rustc_build_arch rustc_build_vendor rustc_build_os rustc_build_env <<< "$build"
+                    RUSTFLAGS_FOR_BUILD="$SAVE_RUSTFLAGS_FOR_BUILD --target ${rustc_build_arch}-unknown-${rustc_build_os}-${rustc_build_env}"
+                    echo 'fn main(){}' > comptest.rs 
+                    echo "$RUSTC_FOR_BUILD $RUSTFLAGS_FOR_BUILD --crate-type rlib --crate-name comptest comptest.rs" >> config.log
+                $RUSTC_FOR_BUILD $RUSTFLAGS_FOR_BUILD --crate-type rlib --crate-name comptest comptest.rs 2>> config.log > /dev/null
+
                     if test $? -eq 0
                     then
-                        rustc_build_target=$build_alias
-                        rm -f test.rs libtest.rlib
-                        AC_MSG_RESULT([--target $build_alias])
-                    else
-                        rm -f test.rs libtest.rlib
-                        case "$build" in 
-                            x86_64-pc-*-* )
-                                IFS="-" read arch vendor kernel env  <<< "$host"
-                                rustc_build_target="$arch-unknown-$kernel-$env"
-                                RUSTFLAGS="$SAVE_RUSTFLAGS --target $rustc_build_target"
-                                echo '' > test.rs
-                                $RUSTC $RUSTFLAGS --crate-type rlib --crate-name test test.rs  2>> config.log > /dev/null
-                                if test $? -eq 0
-                                then
-                                    rm -f test.rs libtest.rlib
-                                    AC_MSG_RESULT([--target $rustc_build_target])
-                                else
-                                    AC_MSG_RESULT([failed])
-                                    AC_MSG_ERROR([Cannot determine how to cross compile to $host with $RUSTC])
-                                fi
-                            ;;
+                        rustc_build_target=${rustc_build_arch}-unknown-${rustc_build_os}-${rustc_build_env}
+                    fi 
+                    ;;
+                x86_64-*-* | i*86-*-* )
+                    IFS="-" read rustc_build_arch rustc_build_vendor rustc_build_sys <<< "$build"
+                    RUSTFLAGS_FOR_BUILD="$SAVE_RUSTFLAGS_FOR_BUILD --target ${rustc_build_arch}-unknown-${rustc_build_sys}"
+                    echo 'fn main(){}' > comptest.rs 
+                    echo "$RUSTC_FOR_BUILD $RUSTFLAGS_FOR_BUILD --crate-type rlib --crate-name comptest comptest.rs" >> config.log
+                    $RUSTC_FOR_BUILD $RUSTFLAGS_FOR_BUILD --crate-type rlib --crate-name comptest comptest.rs 2>> config.log > /dev/null
 
-                            i?86-pc-*-* )
-                                IFS="-" read arch vendor kernel env  <<< "$host"
-                                host_target="$arch-unknown-$kernel-$env"
-                                RUSTFLAGS="$SAVE_RUSTFLAGS --target $host_target"
-                                echo '' > test.rs
-                                $RUSTC $RUSTFLAGS --crate-type rlib --crate-name test test.rs  2>> config.log > /dev/null
-                                if test $? -eq 0
-                                then
-                                    rm -f test.rs libtest.rlib
-                                    AC_MSG_RESULT([--target $host_target])
-                                else
-                                    AC_MSG_RESULT([failed])
-                                    AC_MSG_ERROR([Cannot determine how to cross compile to $host with $RUSTC])
-                                fi
-                            ;;
+                    if test $? -eq 0
+                    then
+                        rustc_host_target=${rustc_build_arch}-unknown-${rustc_build_sys}
+                    fi 
+                    ;;
+                esac
+            fi
+            if test x$rustc_build_target \= x
+            then
+                AC_MSG_RESULT([not found])
+                AC_MSG_ERROR([Cannot compile to $host with $RUSTC])
+            else
+                AC_MSG_RESULT([--target $rustc_build_target])
+            fi
+        ;;
+    esac
 
-                            *)
-                                AC_MSG_RESULT([failed])
-                                AC_MSG_ERROR([Cannot determine how to cross compile to $host with $RUSTC])
-                                ;;
-                        esac
-                    fi
-                fi
-                ;;
-        esac
-    fi
-
+    rm -f comptest.rs libcomptest.rlib
     AC_MSG_CHECKING([whether Rust compiler works])
     echo 'fn main(){}' > test.rs 
     $RUSTC_FOR_BUILD $RUSTFLAGS_FOR_BUILD --crate-type bin --crate-name test test.rs 2>> config.log > /dev/null
@@ -302,16 +326,16 @@ AC_DEFUN([LCRUST_RUSTC_VERSION_FOR_BUILD],[
     case $build_rust_version in
         *.*.*-beta.* )
             rust_channel=beta
-            IFS="." read build_rust_major build_rust_minor _lcrust_rest <<< ${version_output}
+            IFS="." read build_rust_major build_rust_minor _lcrust_rest <<< ${build_rust_version}
             IFS="-" read build_rust_patch <<< ${_lcrust_rest}
             ;;
         *.*.*-* )
-            IFS="." read build_rust_major build_rust_minor _lcrust_rest <<< ${version_output}
+            IFS="." read build_rust_major build_rust_minor _lcrust_rest <<< ${build_rust_version}
             IFS="-" read build_rust_patch build_rust_channel <<< ${_lcrust_rest}
             ;;
         *.*.* )
             rust_channel=stable
-            IFS="." read build_rust_major build_rust_minor build_rust_patch <<< ${version_output}
+            IFS="." read build_rust_major build_rust_minor build_rust_patch <<< ${build_rust_version}
             ;;
     esac
     AC_MSG_CHECKING(whether $RUSTC_FOR_BUILD is lccc)
@@ -328,6 +352,9 @@ AC_DEFUN([LCRUST_RUSTC_VERSION_FOR_BUILD],[
     AC_SUBST(build_rustc_name)
     AC_SUBST(build_rust_version)
     AC_SUBST(build_rust_channel)
+    AC_SUBST(build_rust_major)
+    AC_SUBST(build_rust_minor)
+    AC_SUBST(build_rust_patch)
 ])
 
 
