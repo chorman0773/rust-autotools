@@ -44,7 +44,7 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
             if test x$host_alias != x 
             then
                 RUSTFLAGS="$RUSTFLAGS --target $host_alias"
-                echo 'fn main(){}' > comptest.rs 
+                echo '#![no_std]' > comptest.rs 
                 echo Trying target $host_alias >> config.log
                 echo "$RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs" >> config.log
                 $RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs 2>> config.log > /dev/null
@@ -60,7 +60,7 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
             if test x$rustc_host_target \= x
             then 
                 RUSTFLAGS="$SAVE_RUSTFLAGS --target $host"
-                echo 'fn main(){}' > comptest.rs 
+                echo '#![no_std]' > comptest.rs 
                 echo Trying target $host >> config.log
                 echo "$RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs" >> config.log
                 $RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs 2>> config.log > /dev/null
@@ -76,10 +76,22 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
             if test x$rustc_host_target \= x
             then
                 case $host in
+                x86_64-*-mingw32 | i*86-*-mingw32 )
+                    IFS="-" read rustc_host_arch rustc_host_vendor rustc_host_sys <<< "$host"
+                    RUSTFLAGS="$SAVE_RUSTFLAGS --target ${rustc_host_arch}-pc-windows-gnu"
+                    echo '#![no_std]' > comptest.rs 
+                    echo "$RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs" >> config.log
+                    $RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs 2>> config.log > /dev/null
+
+                    if test $? -eq 0
+                    then
+                        rustc_host_target=${rustc_host_arch}-pc-windows-gnu
+                    fi
+                    ;;
                 x86_64-*-*-* | i*86-*-*-* )
                     IFS="-" read rustc_host_arch rustc_host_vendor rustc_host_os rustc_host_env <<< "$host"
                     RUSTFLAGS="$SAVE_RUSTFLAGS --target ${rustc_host_arch}-unknown-${rustc_host_os}-${rustc_host_env}"
-                    echo 'fn main(){}' > comptest.rs 
+                    echo '#![no_std]' > comptest.rs 
                     echo "$RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs" >> config.log
                     $RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs 2>> config.log > /dev/null
 
@@ -91,7 +103,7 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
                 x86_64-*-* | i*86-*-* )
                     IFS="-" read rustc_host_arch rustc_host_vendor rustc_host_sys <<< "$host"
                     RUSTFLAGS="$SAVE_RUSTFLAGS --target ${rustc_host_arch}-unknown-${rustc_host_sys}"
-                    echo 'fn main(){}' > comptest.rs 
+                    echo '#![no_std]' > comptest.rs 
 
                     echo "$RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs" >> config.log
                     $RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs 2>> config.log > /dev/null
@@ -100,6 +112,19 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
                     then
                         rustc_host_target=${rustc_host_arch}-unknown-${rustc_host_sys}
                     fi 
+                    ;;
+                *-*-* )
+                    IFS="-" read rustc_host_arch rustc_host_vendor rustc_host_sys <<< "$host"
+                    RUSTFLAGS="$SAVE_RUSTFLAGS --target ${rustc_host_arch}-${rustc_host_sys}"
+                    echo '#![no_std]' > comptest.rs 
+
+                    echo "$RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs" >> config.log
+                    $RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs 2>> config.log > /dev/null
+
+                    if test $? -eq 0
+                    then
+                        rustc_host_target=${rustc_host_arch}-${rustc_host_sys}
+                    fi
                     ;;
                 esac
             fi
@@ -122,7 +147,7 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
         AC_MSG_ERROR([Cannot compile a simple program with $RUSTC])
     fi
 
-    if test x$host_alias != x 
+    if test x$host_alias \= x 
     then
         ./comptest${EXEEXT}
         if test $? -ne 0
@@ -250,7 +275,19 @@ AC_DEFUN([LCRUST_PROG_RUSTC_FOR_BUILD],[
 
             if test x$rustc_build_target \= x
             then
-                case $build in
+                case $build in                
+                x86_64-*-mingw32 | i*86-*-mingw32 )
+                    IFS="-" read rustc_host_arch rustc_host_vendor rustc_host_sys <<< "$host"
+                    RUSTFLAGS="$SAVE_RUSTFLAGS --target ${rustc_host_arch}-pc-windows-gnu"
+                    echo '#![no_std]' > comptest.rs 
+                    echo "$RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs" >> config.log
+                    $RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs 2>> config.log > /dev/null
+
+                    if test $? -eq 0
+                    then
+                        rustc_host_target=${rustc_host_arch}-pc-windows-gnu
+                    fi
+                    ;;
                 x86_64-*-*-* | i*86-*-*-* )
                     IFS="-" read rustc_build_arch rustc_build_vendor rustc_build_os rustc_build_env <<< "$build"
                     RUSTFLAGS_FOR_BUILD="$SAVE_RUSTFLAGS_FOR_BUILD --target ${rustc_build_arch}-unknown-${rustc_build_os}-${rustc_build_env}"
@@ -275,12 +312,26 @@ AC_DEFUN([LCRUST_PROG_RUSTC_FOR_BUILD],[
                         rustc_host_target=${rustc_build_arch}-unknown-${rustc_build_sys}
                     fi 
                     ;;
+
+                *-*-* )
+                    IFS="-" read rustc_host_arch rustc_host_vendor rustc_host_sys <<< "$host"
+                    RUSTFLAGS="$SAVE_RUSTFLAGS --target ${rustc_host_arch}-${rustc_host_sys}"
+                    echo 'fn main(){}' > comptest.rs 
+
+                    echo "$RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs" >> config.log
+                    $RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest comptest.rs 2>> config.log > /dev/null
+
+                    if test $? -eq 0
+                    then
+                        rustc_host_target=${rustc_host_arch}-${rustc_host_sys}
+                    fi
+                    ;;
                 esac
             fi
             if test x$rustc_build_target \= x
             then
                 AC_MSG_RESULT([not found])
-                AC_MSG_ERROR([Cannot compile to $host with $RUSTC])
+                AC_MSG_ERROR([Cannot compile to $build with $RUSTC])
             else
                 AC_MSG_RESULT([--target $rustc_build_target])
             fi
