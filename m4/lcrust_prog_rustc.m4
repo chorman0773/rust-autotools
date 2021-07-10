@@ -143,8 +143,17 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
     $RUSTC $RUSTFLAGS --crate-type bin --crate-name comptest comptest.rs 2>> config.log > /dev/null
     if test $? -ne 0
     then
-        AC_MSG_RESULT([no])
-        AC_MSG_ERROR([Cannot compile a simple program with $RUSTC])
+        echo '#![no_std]' > comptest.rs
+        $RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest --emit link=libcomptest.rlib comptest.rs 2>> config.log > /dev/null
+        if test $? -ne 0
+        then
+            AC_MSG_RESULT([no])
+            AC_MSG_ERROR([Cannot compile a simple program with $RUSTC])
+        else
+            rustc_has_std=no
+        fi
+    else
+        rustc_has_std=yes
     fi
 
     if test x$host_alias \= x 
@@ -161,6 +170,7 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
 
     AC_MSG_RESULT([yes])
 
+    AC_SUBST(rustc_has_std)
     AC_SUBST(RUSTC)
     AC_SUBST(RUSTFLAGS)
 ])

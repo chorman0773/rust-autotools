@@ -11,6 +11,7 @@ rust_patch=@rust_patch@
 rust_channel=@rust_channel@
 rust_version=@rust_version@
 rustc_is_lccc=@rustc_is_lccc@
+rustc_has_std=@rustc_has_std@
 
 
 build_rustc_name=@build_rustc_name@

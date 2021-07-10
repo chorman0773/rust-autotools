@@ -608,6 +608,7 @@ rust_major
 rust_channel
 rust_version
 rustc_name
+rustc_has_std
 RUSTFLAGS
 RUSTC
 OBJEXT
@@ -3043,9 +3044,18 @@ $as_echo_n "checking whether Rust compiler works... " >&6; }
     $RUSTC $RUSTFLAGS --crate-type bin --crate-name comptest comptest.rs 2>> config.log > /dev/null
     if test $? -ne 0
     then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+        echo '#![no_std]' > comptest.rs
+        $RUSTC $RUSTFLAGS --crate-type rlib --crate-name comptest --emit link=libcomptest.rlib comptest.rs 2>> config.log > /dev/null
+        if test $? -ne 0
+        then
+            { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-        as_fn_error $? "Cannot compile a simple program with $RUSTC" "$LINENO" 5
+            as_fn_error $? "Cannot compile a simple program with $RUSTC" "$LINENO" 5
+        else
+            rustc_has_std=no
+        fi
+    else
+        rustc_has_std=yes
     fi
 
     if test x$host_alias \= x
@@ -3063,6 +3073,7 @@ $as_echo "no" >&6; }
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
+
 
 
 
