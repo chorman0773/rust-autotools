@@ -3,6 +3,8 @@ RUSTC=@RUSTC@
 RUSTFLAGS=@RUSTFLAGS@
 RUSTC_FOR_BUILD=@RUSTC_FOR_BUILD@
 RUSTFLAGS_FOR_BUILD=@RUSTFLAGS_FOR_BUILD@
+RUSTDOC=@RUSTDOC@
+RUSTDOCFLAGS=@RUSTDOCFLAGS@
 
 rustc_name=@rustc_name@
 rust_major=@rust_major@
@@ -12,7 +14,6 @@ rust_channel=@rust_channel@
 rust_version=@rust_version@
 rustc_is_lccc=@rustc_is_lccc@
 rustc_has_std=@rustc_has_std@
-
 
 build_rustc_name=@build_rustc_name@
 build_rust_major=@build_rust_major@

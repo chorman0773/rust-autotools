@@ -11,6 +11,7 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
     AC_REQUIRE([AC_CANONICAL_HOST])
     AC_ARG_VAR(RUSTC,[Rust compiler to use])
     AC_ARG_VAR(RUSTFLAGS,[Flags to pass to the rust compiler])
+    
 
     if test "$RUSTFLAGS" \= "" 
     then
@@ -138,7 +139,7 @@ AC_DEFUN([LCRUST_PROG_RUSTC],[
         ;;
     esac
     rm -f comptest.rs libcomptest.rlib
-    AC_MSG_CHECKING([whether Rust compiler works])
+    AC_MSG_CHECKING([whether $RUSTC works])
     echo 'fn main(){}' > comptest.rs 
     $RUSTC $RUSTFLAGS --crate-type bin --crate-name comptest comptest.rs 2>> config.log > /dev/null
     if test $? -ne 0
@@ -349,7 +350,7 @@ AC_DEFUN([LCRUST_PROG_RUSTC_FOR_BUILD],[
     esac
 
     rm -f comptest.rs libcomptest.rlib
-    AC_MSG_CHECKING([whether Rust compiler works])
+    AC_MSG_CHECKING([whether $RUSTC_FOR_BUILD works])
     echo 'fn main(){}' > test.rs 
     $RUSTC_FOR_BUILD $RUSTFLAGS_FOR_BUILD --crate-type bin --crate-name test test.rs 2>> config.log > /dev/null
     if test $? -ne 0
@@ -447,4 +448,109 @@ AC_DEFUN([LCRUST_TRY_COMPILE_FOR_BUILD],[
         try_compile_result=no
         $3
     fi
+])
+
+AC_DEFUN([LCRUST_PROG_CARGO],[
+    AC_REQUIRE([LCRUST_PROG_RUSTC])
+    AC_ARG_VAR([CARGO])
+    AC_ARG_VAR([CARGOFLAGS])
+
+    AC_PATH_PROG([CARGO],[cargo])
+
+
+    CARGOFLAGS="$CARGOFLAGS --target $rustc_host_target"
+
+    AC_MSG_CHECKING([whether $CARGO works])
+    mkdir -m700 tmp
+    cat > tmp/Cargo.toml << "EOF"
+[package]
+name = "cargotest"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+EOF
+    mkdir tmp/src
+    echo '#![no_std]' > tmp/src/lib.rs
+    CARGO_RUSTFLAGS="`sed -e 's/--target [[[:graph:]]]*//'<<<"$RUSTFLAGS"`"
+    AC_MSG_CHECKING([whether $CARGO works])
+    echo "RUSTC=\"$RUSTC\" RUSTFLAGS=\"$CARGO_RUSTFLAGS\" $CARGO build $CARGOFLAGS --lib --manifest-path tmp/Cargo.toml --target-dir tmp/target/" >> config.log
+    RUSTC="$RUSTC" RUSTFLAGS="$CARGO_RUSTFLAGS" $CARGO build $CARGOFLAGS --lib --manifest-path tmp/Cargo.toml --target-dir tmp/target/ 2>> config.log > /dev/null
+    if test $? -ne 0
+    then
+        echo "RUSTC=\"$RUSTC\" RUSTFLAGS=\"$CARGO_RUSTFLAGS\" $CARGO gccrs $CARGOFLAGS --lib --manifest-path tmp/Cargo.toml --target-dir tmp/target/" >> config.log
+        RUSTC="$RUSTC" RUSTFLAGS="$CARGO_RUSTFLAGS" $CARGO gccrs $CARGOFLAGS --lib --manifest-path tmp/Cargo.toml --target-dir tmp/target/ 2>> config.log > /dev/null
+        if test $? -ne 0
+        then
+            AC_MSG_RESULT([no])
+            rm -rf tmp/
+            AC_MSG_ERROR([Cannot build a simple workspace with $CARGO])
+        fi
+        cargo_build_command=gccrs
+    else
+        cargo_build_command=build
+    fi
+    rm -rf tmp/
+    AC_MSG_RESULT([yes])
+
+    AC_SUBST([CARGO])
+    AC_SUBST([CARGOFLAGS])
+    AC_SUBST([CARGO_RUSTFLAGS])
+    AC_SUBST([cargo_build_command])
+])
+
+
+AC_DEFUN([LCRUST_PROG_RUSTDOC],[
+    AC_REQUIRE([LCRUST_PROG_RUSTC])
+    AC_ARG_VAR([RUSTDOC])
+    AC_ARG_VAR([RUSTDOCFLAGS])
+
+    AC_PATH_PROG([RUSTDOC],[rustdoc])
+
+    RUSTDOCFLAGS="$RUSTDOCFLAGS --target $rustc_host_target"
+
+    AC_MSG_CHECKING([whether $RUSTDOC works])
+    
+    cat > comptest.rs << EOF
+#![no_std]
+#![doc = r"#
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+Vivamus quis porttitor tortor, gravida pharetra mi. 
+Cras eu est nec massa faucibus efficitur. 
+Cras congue ultrices efficitur. 
+Cras non auctor augue. 
+Mauris faucibus purus ac dui dictum fermentum. 
+Suspendisse dapibus elementum justo non consequat. 
+Ut sit amet massa vel justo auctor euismod non rutrum justo. 
+Fusce sed porttitor lectus. Sed semper enim eu nunc cursus elementum.
+#"]
+EOF
+
+    $RUSTDOC $RUSTDOCFLAGS --crate-type rlib --crate-name comptest --output tmp/ comptest.rs
+
+    if test $? -ne 0
+    then 
+        rm -rf tmp/
+        AC_MSG_RESULT([no])
+        AC_MSG_ERROR([$RUSTDOC cannot build documentation for a simple program])
+    fi
+
+    if test ! -f tmp/comptest/index.html
+    then
+        rm -rf tmp/
+        AC_MSG_RESULT([no])
+        AC_MSG_ERROR([$RUSTDOC did not produce output in the expected format])
+    fi
+
+    if test "`grep 'Lorem ipsum dolor sit amet' tmp/comptest/index.html`" \= ""
+    then
+        rm -rf tmp/
+        AC_MSG_RESULT([no])
+        AC_MSG_ERROR([$RUSTDOC did not produce the expected output])
+    fi
+    rm -rf tmp/
+    AC_MSG_RESULT([yes])
 ])

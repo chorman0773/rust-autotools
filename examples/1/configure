@@ -585,6 +585,8 @@ ac_subst_vars='LTLIBOBJS
 LIBOBJS
 build_rustc_is_lccc
 rustc_is_lccc
+RUSTDOCFLAGS
+RUSTDOC
 build_rust_patch
 build_rust_minor
 build_rust_major
@@ -684,7 +686,9 @@ RUSTC
 RUSTFLAGS
 CPP
 RUSTC_FOR_BUILD
-RUSTFLAGS_FOR_BUILD'
+RUSTFLAGS_FOR_BUILD
+RUSTDOC
+RUSTDOCFLAGS'
 
 
 # Initialize some variables set by options.
@@ -1318,6 +1322,9 @@ Some influential environment variables:
               Rust compiler to use on the build system
   RUSTFLAGS_FOR_BUILD
               Flags to pass to the rust compiler for the build system
+  RUSTDOC
+  RUSTDOCFLAGS
+
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -2819,6 +2826,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
+
     if test "$RUSTFLAGS" \= ""
     then
         RUSTFLAGS="-C opt-level=2 -g"
@@ -3038,8 +3046,8 @@ $as_echo "--target $rustc_host_target" >&6; }
         ;;
     esac
     rm -f comptest.rs libcomptest.rlib
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether Rust compiler works" >&5
-$as_echo_n "checking whether Rust compiler works... " >&6; }
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether $RUSTC works" >&5
+$as_echo_n "checking whether $RUSTC works... " >&6; }
     echo 'fn main(){}' > comptest.rs
     $RUSTC $RUSTFLAGS --crate-type bin --crate-name comptest comptest.rs 2>> config.log > /dev/null
     if test $? -ne 0
@@ -4400,8 +4408,8 @@ $as_echo "--target $rustc_build_target" >&6; }
     esac
 
     rm -f comptest.rs libcomptest.rlib
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether Rust compiler works" >&5
-$as_echo_n "checking whether Rust compiler works... " >&6; }
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether $RUSTC_FOR_BUILD works" >&5
+$as_echo_n "checking whether $RUSTC_FOR_BUILD works... " >&6; }
     echo 'fn main(){}' > test.rs
     $RUSTC_FOR_BUILD $RUSTFLAGS_FOR_BUILD --crate-type bin --crate-name test test.rs 2>> config.log > /dev/null
     if test $? -ne 0
@@ -4473,6 +4481,102 @@ $as_echo "$build_rustc_is_lccc" >&6; }
 
 
 
+
+
+
+
+
+
+
+    # Extract the first word of "rustdoc", so it can be a program name with args.
+set dummy rustdoc; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_RUSTDOC+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $RUSTDOC in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_RUSTDOC="$RUSTDOC" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_RUSTDOC="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+RUSTDOC=$ac_cv_path_RUSTDOC
+if test -n "$RUSTDOC"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $RUSTDOC" >&5
+$as_echo "$RUSTDOC" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+
+    RUSTDOCFLAGS="$RUSTDOCFLAGS --target $rustc_host_target"
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether $RUSTDOC works" >&5
+$as_echo_n "checking whether $RUSTDOC works... " >&6; }
+
+    cat > comptest.rs << EOF
+#![no_std]
+#![doc = r"#
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Vivamus quis porttitor tortor, gravida pharetra mi.
+Cras eu est nec massa faucibus efficitur.
+Cras congue ultrices efficitur.
+Cras non auctor augue.
+Mauris faucibus purus ac dui dictum fermentum.
+Suspendisse dapibus elementum justo non consequat.
+Ut sit amet massa vel justo auctor euismod non rutrum justo.
+Fusce sed porttitor lectus. Sed semper enim eu nunc cursus elementum.
+#"]
+EOF
+
+    $RUSTDOC $RUSTDOCFLAGS --crate-type rlib --crate-name comptest --output tmp/ comptest.rs
+
+    if test $? -ne 0
+    then
+        rm -rf tmp/
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+        as_fn_error $? "$RUSTDOC cannot build documentation for a simple program" "$LINENO" 5
+    fi
+
+    if test ! -f tmp/comptest/index.html
+    then
+        rm -rf tmp/
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+        as_fn_error $? "$RUSTDOC did not produce output in the expected format" "$LINENO" 5
+    fi
+
+    if test "`grep 'Lorem ipsum dolor sit amet' tmp/comptest/index.html`" \= ""
+    then
+        rm -rf tmp/
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+        as_fn_error $? "$RUSTDOC did not produce the expected output" "$LINENO" 5
+    fi
+    rm -rf tmp/
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
 
 
 
