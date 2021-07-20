@@ -67,6 +67,10 @@ OUTPUT =
 # The crate name of the library
 CRATE_NAME =
 
+# The path to find dependencies located in
+
+DEPENDENCY_DIR = @abs_builddir@/vendor
+
 # Any dependencies of the library
 DEPENDENCIES = 
 
@@ -82,8 +86,7 @@ binary_outputs = $(foreach bin,$(binaries),$(bin)@EXEEXT@)
 
 CFG = $(foreach feature,$(features),feature="$feature") 
 
-
-EXTERN_CRATES = $(foreach procmacro,$(PROC_MACROS),$(call file_to_crate,$(notdir $(procmacro)))=$(abs_bindir)/vendor/$(prcomacro)/lib$(procmacro).$(DLLEXT))  $(foreach dep,$(DEPENDENCIES),--extern $(call file_to_crate,$(notdir $(dep)))=$(abs_bindir)/vendor/$(dep)/lib$(dep).rlib)
+EXTERN_CRATES = $(foreach procmacro,$(PROC_MACROS),$(call file_to_crate,$(notdir $(procmacro)))=$(DEPENDENCY_DIR)/$(build)/$(procmacro)/lib$(procmacro).$(DLLEXT))  $(foreach dep,$(DEPENDENCIES),--extern $(call file_to_crate,$(notdir $(dep)))=$(DEPENDENCY_DIR)/$(dep)/lib$(dep).rlib)
 
 export CARGO_PKG_VERSION=$(version)
 export CARGO_MANIFEST_DIR=@abs_srcdir@

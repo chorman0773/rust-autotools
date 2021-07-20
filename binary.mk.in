@@ -68,6 +68,8 @@ OUTPUT =
 # The crate name of the main binary
 CRATE_NAME =
 
+DEPENDENCY_DIR = $(abs_builddir)/vendor
+
 # Any dependencies of the binary
 DEPENDENCIES = 
 
@@ -81,11 +83,9 @@ file_to_crate = $(subst -,_,$(1))
 
 binary_outputs = $(foreach bin,$(binaries),$(bin)@EXEEXT@)
 
-CFG = $(foreach feature,$(features),feature="$feature") 
+CFG = $(foreach feature,$(features),feature="$feature")
 
-
-
-EXTERN_CRATES = $(foreach procmacro,$(PROC_MACROS),$(call file_to_crate,$(notdir $(procmacro)))=$(abs_bindir)/vendor/$(prcomacro)/lib$(procmacro).$(DLLEXT))  $(foreach dep,$(DEPENDENCIES),--extern $(call file_to_crate,$(notdir $(dep)))=$(abs_bindir)/vendor/$(dep)/lib$(dep).rlib)
+EXTERN_CRATES = $(foreach procmacro,$(PROC_MACROS),$(call file_to_crate,$(notdir $(procmacro)))=$(DEPENDENCY_DIR)/$(build)/$(procmacro)/lib$(procmacro).$(DLLEXT))  $(foreach dep,$(DEPENDENCIES),--extern $(call file_to_crate,$(notdir $(dep)))=$(DEPENDENCY_DIR)/$(dep)/lib$(dep).rlib)
 
 export CARGO_PKG_VERSION=$(version)
 export CARGO_MANIFEST_DIR=@abs_srcdir@
@@ -119,7 +119,7 @@ include $(OUTPUT).d
 $(OUTPUT).d: $(srcdir)/src/main.rs $(foreach subdir,$(SUBDIRS),$(subdir)/stamp)
 	$(RUSTC) $(RUSTFLAGS) $(EXTRA_RUSTFLAGS) -$(foreach cfg,$(CFG),--cfg $(cfg)) --crate-name $(CRATE_NAME) --crate-type bin --emit dep-info=@builddir@/$(OUTPUT).d -o$(OUTPUT) $< $(EXTERN_CRATES)
 
-$(OUTPUT): $(srcdir)/src/lib.rs $(foreach subdir,$(SUBDIRS),$(subdir)/stamp)
+$(OUTPUT): $(srcdir)/src/main.rs $(foreach subdir,$(SUBDIRS),$(subdir)/stamp)
 	+$(RUSTC) $(RUSTFLAGS) $(EXTRA_RUSTFLAGS) $(foreach cfg,$(CFG),--cfg $(cfg)) --crate-name $(CRATE_NAME) --crate-type bin --emit dep-info=@builddir@/$(OUTPUT).d --emit link=@abs_builddir@/$(OUTPUT) -o$(OUTPUT) $< $(EXTERN_CRATES)
 
 include $(foreach bin,$(binary_outputs),$(bin).d)
@@ -145,8 +145,6 @@ $(binary_outputs:%=install-strip-%): install-strip-%: %
 install: $(binary_outputs:%=install-%) $(foreach subdir,$(SUBDIRS),$(subdir)/install)
 
 install-strip: $(binary_outputs:%=install-strip-%) $(foreach subdir,$(SUBDIRS),$(subdir)/install-strip)
-
-include test-$(OUTPUT:%.rlib=%@EXEEXT@).d
 
 tests/:
 	mkdir tests/

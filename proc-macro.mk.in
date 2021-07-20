@@ -66,6 +66,8 @@ OUTPUT =
 # The crate name of the proc-macro
 CRATE_NAME =
 
+DEPENDENCY_DIR = @abs_builddir@/vendor
+
 # Any dependencies of the proc-macro
 DEPENDENCIES = 
 
@@ -78,9 +80,7 @@ file_to_crate = $(subst -,_,$(1))
 
 CFG = $(foreach feature,$(features),feature="$feature") 
 
-
-
-EXTERN_CRATES = $(foreach dep,$(DEPENDENCIES),--extern $(call file_to_crate,$(dep))=$(abs_bindir)/vendor/$(dep)/lib$(dep).rlib)
+EXTERN_CRATES = $(foreach procmacro,$(PROC_MACROS),$(call file_to_crate,$(notdir $(procmacro)))=$(DEPENDENCY_DIR)/$(build)/$(procmacro)/lib$(procmacro).$(DLLEXT))  $(foreach dep,$(DEPENDENCIES),--extern $(call file_to_crate,$(notdir $(dep)))=$(DEPENDENCY_DIR)/$(dep)/lib$(dep).rlib)
 
 export CARGO_PKG_VERSION=$(version)
 export CARGO_MANIFEST_DIR=@abs_srcdir@
