@@ -529,7 +529,8 @@ Fusce sed porttitor lectus. Sed semper enim eu nunc cursus elementum.
 #"]
 EOF
 
-    $RUSTDOC $RUSTDOCFLAGS --crate-type rlib --crate-name comptest --output tmp/ comptest.rs
+    echo "$RUSTDOC $RUSTDOCFLAGS --crate-type rlib --crate-name comptest --output tmp/ comptest.rs" >> config.log
+    $RUSTDOC $RUSTDOCFLAGS --crate-type rlib --crate-name comptest --output tmp/ comptest.rs 2> config.log > /dev/null
 
     if test $? -ne 0
     then 
@@ -553,4 +554,32 @@ EOF
     fi
     rm -rf tmp/
     AC_MSG_RESULT([yes])
+])
+
+# Separate macro because `--test-builder` is unstable
+AC_DEFUN([LCRUST_RUSTDOC_USE_RUSTC],[
+    AC_REQUIRE([LCRUST_PROG_RUSTDOC])
+    AC_REQUIRE([LCRUST_PROG_RUSTC])
+
+    AC_MSG_CHECKING([how to pass --test-builder to $RUSTDOC])
+    echo "$RUSTDOC --test-builder \"$RUSTC\" $RUSTDOCFLAGS --crate-type rlib --crate-name comptest --output tmp/ comptest.rs" >> config.log
+    $RUSTDOC --test-builder "$RUSTC" $RUSTDOCFLAGS --crate-type rlib --crate-name comptest --output tmp/ comptest.rs  2> config.log > /dev/null
+
+    if test $? -eq 0
+    then
+        rustdoc_use_rustc=yes
+        RUSTDOCFLAGS="--test-builder \"$RUSTC\" $RUSTDOCFLAGS"
+        AC_MSG_RESULT([--test-builder \"$RUSTC\"])
+    else 
+        echo "$RUSTDOC -Z unstable-options --test-builder \"$RUSTC\" $RUSTDOCFLAGS --crate-type rlib --crate-name comptest --output tmp/ comptest.rs" >> config.log
+        $RUSTDOC -Z unstable-options --test-builder "$RUSTC" $RUSTDOCFLAGS --crate-type rlib --crate-name comptest --output tmp/ comptest.rs 2> config.log > /dev/null
+        if test $? -eq 0
+            rustdoc_use_rustc=unstable
+            RUSTDOCFLAGS="-Z unstable-options --test-builder \"$RUSTC\" $RUSTDOCFLAGS"
+            AC_MSG_RESULT([-Z unstable-options --test-builder \"$RUSTC\"])
+        else
+            rustdoc_use_rustc=no
+            AC_MSG_RESULT([not found])
+        fi
+    fi
 ])
