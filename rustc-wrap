@@ -1,0 +1,24 @@
+#!/bin/sh
+
+RUSTC=$1
+
+shift
+
+RUSTFLAGS="$@"
+
+if $RUSTC -C opt-level=0 --print file-names --crate-type bin --crate-name test /dev/null > /dev/null 2> /dev/null
+then
+    exec $RUSTC $RUSTFLAGS
+else
+# Assume we are running a gcc-like CLI
+    gccrs_flags=""
+    for opt in $RUSTFLAGS
+    do
+        case $opt in
+            --help | --version )
+                exec $RUSTC $opt
+            ;;
+            
+        esac
+    done
+fi

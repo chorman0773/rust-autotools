@@ -14,6 +14,10 @@ rust_channel=@rust_channel@
 rust_version=@rust_version@
 rustc_is_lccc=@rustc_is_lccc@
 rustc_has_std=@rustc_has_std@
+rust_bin_prefix=@rust_bin_prefix@
+rust_bin_suffix=@rust_bin_suffix@
+rust_rlib_prefix=@rust_rlib_prefix@
+rust_rlib_suffix=@rust_rlib_suffix@
 
 build_rustc_name=@build_rustc_name@
 build_rust_major=@build_rust_major@
