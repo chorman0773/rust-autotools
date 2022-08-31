@@ -22,15 +22,15 @@ Presently, cargo is a hard dependency of almost every rust project in existence.
 This poses issues to projects that may want to be built in a constrained bootstrap environment, where building cargo is an extra step that is otherwise unnecessary. These files allow those project to be built without cargo, using configure+make instead.
 
 The following projects either currently provide, or will provide autoconf using these files, in addition to cargo:
-[ ] <https://github.com/LightningCreations/lccc> (rust libraries and rust frontend plugins)
-[ ] <https://github.com/LightningCreations/lc-binutils>
-[ ] <https://github.com/LightningCreations/lc-login>
-[x] <https://github.com/LightningCreations/lc-make>
-[x] <https://github.com/chorman0773/rust-target-tuples>
-[ ] <https://github.com/chorman0773/fake-enum>
-[ ] <https://github.com/chorman0773/install-dirs>
-[ ] <https://github.com/chorman0773/Clever-ISA-Emu>
-[ ] <https://github.com/chorman0773/fused-lock-rs>
-[ ] <https://github.com/chorman0773/cargo-native-install>
+- [ ] <https://github.com/LightningCreations/lccc> (rust libraries and rust frontend plugins)
+- [ ] <https://github.com/LightningCreations/lc-binutils>
+- [ ] <https://github.com/LightningCreations/lc-login>
+- [x] <https://github.com/LightningCreations/lc-make>
+- [x] <https://github.com/chorman0773/rust-target-tuples>
+- [ ] <https://github.com/chorman0773/fake-enum>
+- [ ] <https://github.com/chorman0773/install-dirs>
+- [ ] <https://github.com/chorman0773/Clever-ISA-Emu>
+- [ ] <https://github.com/chorman0773/fused-lock-rs>
+- [ ] <https://github.com/chorman0773/cargo-native-install>
 
 

@@ -1,2 +1,45 @@
 #!/bin/sh
 
+_CARGO=
+
+if [ "$CARGO" != "" ]
+then
+    _CARGO="$CARGO"
+else if [ "$HOST_CARGO" != "" ]
+then
+    _CARGO="$HOST_CARGO"
+else if [ "$host" != "" ]
+then
+    _host="$(echo \"$host\" | sed -e 's/-/_/g' | tr '[:lower:]' '[:upper:]')_CARGO"
+    if [ "${!_host}" != "" ]
+    then
+        _CARGO="$_host"
+    fi
+fi
+
+if [ "$_CARGO" \= ""]
+then
+    if [ "$(command -v cargo)" != "" ]
+    then
+        _CARGO="$(comand -v cargo)"
+    else if [ "$(command -v lc-cargo)" != "" ]
+    then
+        _CARGO="$(command -v lc-cargo)"
+    else
+        echo "cargo not found. Add cargo to your PATH, or set CARGO to the path to cargo"
+    fi
+fi
+
+
+case "$_CARGO" in 
+    "[\\/]*" )
+        ;;
+    "*" )
+        e_CARGO="$_CARGO"
+        _CARGO="$(cargo -v $_CARGO)"
+        if [ "$_CARGO" ]= "" ]
+        then
+            echo "$e_CARGO not found, add it to path or set CARGO to the path to cargo"
+        fi
+        ;;
+esac
