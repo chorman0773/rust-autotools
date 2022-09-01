@@ -43,3 +43,10 @@ case "$_CARGO" in
         fi
         ;;
 esac
+
+package="$($_CARGO locate-project --workspace | sed -e 's/.*"root":"([^"])".*/\1/')"
+root="$(dirname "$package")"
+
+
+if [ -f "$root/Cargo.lock" ] && [ "$root/Cargo.lock" -nt "$root/Cargo.toml" ] 
+
